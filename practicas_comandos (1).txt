@@ -1,0 +1,76 @@
+
+========================
+PRACTICA 1: INSTALACION DEL SISTEMA OPERATIVO
+========================
+# Crear la máquina virtual con requisitos mínimos
+# Configurar red en modo Bridge (desde configuración de VM)
+
+# Instalar el sistema operativo desde ISO en la VM
+
+
+========================
+PRACTICA 2: CONFIGURACION DE PARAMETROS DE RED
+========================
+# Usar DHCP para obtener IP automáticamente
+sudo dhclient
+
+# Configurar IP estática con Netplan (ejemplo)
+sudo nano /etc/netplan/01-netcfg.yaml
+
+# Contenido de ejemplo:
+network:
+  version: 2
+  ethernets:
+    enp0s3:
+      addresses: [192.168.1.100/24]
+      gateway4: 192.168.1.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+
+# Aplicar cambios
+sudo netplan apply
+
+# Configurar DNS manualmente (temporal)
+sudo nano /etc/resolv.conf
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+
+
+========================
+PRACTICA 3: GESTION DE USUARIOS Y GRUPOS
+========================
+# Crear usuario y agregarlo a sudoers
+sudo adduser tu_nombre
+sudo usermod -aG sudo tu_nombre
+
+# Crear grupo y usuario, agregarlo al grupo
+sudo groupadd guest
+sudo adduser invitado
+sudo usermod -aG guest invitado
+
+# Eliminar usuario y grupo
+sudo deluser invitado
+sudo groupdel guest
+
+
+========================
+PRACTICA 4: GESTION DE PERMISOS DE ARCHIVOS
+========================
+# Crear carpeta y archivo
+mkdir materia
+cd materia
+vi estudiante.txt  # Agregar nombre y matrícula
+
+# Permitir control total solo al propietario
+chmod 700 estudiante.txt
+
+# Permitir control total solo al grupo
+chmod 070 estudiante.txt
+
+# Crear nueva carpeta y copiar archivo
+cd ..
+mkdir materia2
+cp materia/estudiante.txt materia2/
+
+# Eliminar carpeta materia con el archivo
+rm -r materia
