@@ -1,0 +1,83 @@
+============================
+Adrian Alcantara - Prácticas Linux
+============================
+
+PRACTICA 1: Repositorios y Bashtop
+----------------------------------
+
+1. Actualizar repositorios y sistema:
+sudo apt update && sudo apt upgrade -y
+
+2. Ver repositorios activos:
+cat /etc/apt/sources.list
+ls /etc/apt/sources.list.d/
+
+3. Buscar herramienta bashtop:
+apt search bashtop
+
+4. Instalar bashtop:
+sudo apt install bashtop -y
+# Si no está disponible:
+# sudo add-apt-repository ppa:bashtop-monitor/bashtop -y
+# sudo apt update
+# sudo apt install bashtop -y
+
+5. Ejecutar bashtop:
+bashtop
+
+6. Desinstalar bashtop y borrar configuración:
+sudo apt purge bashtop -y
+
+7. Eliminar dependencias:
+sudo apt autoremove -y
+
+
+PRACTICA 2: Cron y at
+----------------------
+
+1. Crear cronjob para actualizar a las 11 PM:
+sudo crontab -e
+>> 0 23 * * * apt update && apt upgrade -y
+
+2. Reiniciar domingos a las 3 AM:
+>> 0 3 * * 0 /sbin/shutdown -r now
+
+3. Limpiar /tmp con at:
+sudo apt install at -y
+sudo systemctl start atd
+sudo systemctl enable atd
+
+Ver contenido antes:
+ls /tmp
+
+Crear tarea at:
+echo "rm -rf /tmp/*" | at now + 1 minute
+
+Ver contenido después:
+ls /tmp
+
+
+PRACTICA 3: Disco adicional
+----------------------------
+
+1. Ver discos:
+lsblk
+
+2. Formatear nuevo disco (ej. /dev/sdb):
+sudo mkfs.ext4 /dev/sdb
+
+3. Crear carpeta en Escritorio y montar:
+mkdir -p ~/Escritorio/DiscoAdrian
+sudo mount /dev/sdb ~/Escritorio/DiscoAdrian
+
+4. Crear archivo:
+touch ~/Escritorio/DiscoAdrian/AdrianAlcantara.txt
+
+5. Desmontar:
+sudo umount /dev/sdb
+
+6. Montar en /mnt:
+sudo mount /dev/sdb /mnt
+
+7. Verificar archivo:
+ls /mnt
