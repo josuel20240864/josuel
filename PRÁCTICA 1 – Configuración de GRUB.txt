@@ -1,0 +1,126 @@
+ PRÁCTICA 1 – Configuración de GRUB y recuperación de contraseña root
+Cambiar el tiempo de espera del menú de GRUB a 20 segundos
+
+Abrir el archivo de configuración del GRUB:
+sudo nano /etc/default/grub
+
+Buscar la línea que dice:
+GRUB_TIMEOUT=5
+y cambiarla por:
+GRUB_TIMEOUT=20
+
+Guardar el archivo (Ctrl + O, Enter) y salir (Ctrl + X).
+
+Actualizar GRUB para aplicar los cambios:
+sudo update-grub
+
+Recuperar contraseña de root si la olvidaste
+Reinicia la máquina y entra al menú de GRUB.
+(Presiona rápidamente Shift o la tecla Esc al iniciar).
+
+Selecciona la opción del sistema y presiona la tecla e para editar.
+
+Busca la línea que inicia con linux y al final agrega:
+init=/bin/bash
+
+Presiona Ctrl + X o F10 para iniciar con esos cambios.
+
+Una vez entres a la consola, monta el sistema con permisos de escritura:
+mount -o remount,rw /
+
+Cambia la contraseña de root:
+passwd root
+
+Reinicia la máquina:
+reboot
+
+✅ PRÁCTICA 2 – Scripts: Backup y red
+
+Script 1:
+ Hacer backup con TAR
+Crear el script:
+nano backup.sh
+
+Escribe este contenido:
+
+bash
+Copiar
+Editar
+#!/bin/bash
+fecha=$(date +'%d-%m-%Y:%H:%M')
+tar -czvf /home/$USER/backup_$fecha.tar.gz /home/$USER
+Darle permisos de ejecución:
+chmod +x backup.sh
+
+Ejecutar el script:
+./backup.sh
+
+Este script crea un archivo comprimido con el contenido de tu carpeta /home con nombre según la fecha y hora.
+
+Script 2: Guardar salida de ifconfig en archivo con nombre personalizado
+Crear el script:
+nano guardar_red.sh
+
+Escribe este contenido:
+
+bash
+Copiar
+Editar
+#!/bin/bash
+read -p "¿Qué nombre deseas ponerle al archivo? " nombre
+ifconfig > /home/$USER/Escritorio/$nombre.txt
+Darle permisos de ejecución:
+chmod +x guardar_red.sh
+
+Ejecutar el script:
+./guardar_red.sh
+
+Este script pregunta el nombre que deseas para el archivo y guarda la salida de ifconfig en el escritorio.
+
+✅ PRÁCTICA 3 – SSH y conexión sin contraseña
+Paso 1: Configurar red de VM en modo Bridge
+(Esto se hace desde la configuración de la máquina virtual, no con comandos).
+
+Paso 2: Verificar conectividad desde Windows
+ping 192.168.100.126
+(Usa la IP de tu VM)
+
+Paso 3: Instalar y activar SSH en Ubuntu
+bash
+Copiar
+Editar
+sudo apt update
+sudo apt install openssh-server -y
+sudo systemctl enable ssh
+sudo systemctl start ssh
+sudo systemctl status ssh
+Paso 4: Conexión SSH desde Windows usando contraseña
+ssh tu_usuario@192.168.100.126
+(Reemplaza tu_usuario con tu usuario real)
+
+Paso 5: Generar claves SSH en Windows
+ssh-keygen -t ed25519
+Presiona Enter en todo.
+
+Paso 6: Verificar que se generaron las claves
+Get-ChildItem $env:USERPROFILE\.ssh
+
+Paso 7: Copiar clave pública al servidor Ubuntu
+scp $env:USERPROFILE\.ssh\id_ed25519.pub tu_usuario@192.168.100.126:/home/tu_usuario/
+
+Paso 8: Configurar claves en Ubuntu
+bash
+Copiar
+Editar
+mkdir -p ~/.ssh
+cat ~/id_ed25519.pub >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+Paso 9: Verificar clave agregada
+cat ~/.ssh/authorized_keys
+
+Paso 10: Reiniciar servicio SSH (opcional)
+sudo systemctl restart ssh
+
+Paso 11: Conectarse sin contraseña desde Windows
+ssh -i $env:USERPROFILE\.ssh\id_ed25519 tu_usuario@192.168.100.126
