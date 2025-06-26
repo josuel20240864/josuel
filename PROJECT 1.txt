@@ -1,0 +1,172 @@
+
+# ✅ PRÁCTICA 1 – Servidor HTTP Apache2
+
+# Paso 1: Instalar Apache2
+
+sudo apt update
+sudo apt install apache2 -y
+
+# Paso 2: Crear sitio "Hola Mundo"
+
+sudo mkdir -p /var/www/hola
+echo "<h1>Hola Mundo</h1>" | sudo tee /var/www/hola/index.html
+
+# Paso 3: Crear host virtual en puerto 80
+
+sudo nano /etc/apache2/sites-available/hola.conf
+
+# (Pegar dentro de nano)
+
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/hola
+    ServerName hola.local
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+# Habilitar el sitio y recargar Apache
+
+sudo a2ensite hola.conf
+sudo systemctl reload apache2
+
+# Paso 4: Crear segundo sitio (nombre, matrícula, materia)
+
+sudo mkdir -p /var/www/josuel
+echo "<h1>Josuel Andrés Cordero Guzmán<br>2024-0864<br>Sistemas Operativos3</h1>" | sudo tee /var/www/josuel/index.html
+
+# Paso 5: Crear host virtual en puerto 8080
+
+sudo nano /etc/apache2/sites-available/josuel.conf
+
+# (Pegar dentro de nano)
+
+
+
+# Habilitar el puerto 8080 en Apache
+
+sudo sed -i 's/Listen 80/Listen 80\nListen 8080/' /etc/apache2/ports.conf
+
+# Habilitar el sitio y recargar Apache
+
+sudo a2ensite josuel.conf
+sudo systemctl reload apache2
+
+# Agregar en el archivo /etc/hosts del cliente:
+
+sudo nano /etc/hosts
+
+# 192.168.115.129 hola.local
+# 192.168.129 josue.local
+
+
+
+
+
+# ✅ PRÁCTICA 2 – Enviar correo real al maestro usando Postfix con Gmail (RELAY SMTP)
+
+# 📌 Requisitos:
+# - Tener una cuenta Gmail
+# - Crear una "clave de aplicación" desde https://myaccount.google.com/apppasswords (no uses tu contraseña normal)
+
+# 🧱 Paso 1: Instalar Postfix y dependencias
+
+sudo apt update
+
+sudo apt install postfix mailutils libsasl2-modules -y
+
+# Durante la instalación:
+
+# - Tipo de configuración: Internet Site
+# - Nombre del sistema de correo: puedes usar mail.local o josuel.local
+
+# 🧾 Paso 2: Editar configuración principal de Postfix
+
+sudo nano /etc/postfix/main.cf
+
+# Agrega al final del archivo:
+relayhost = [smtp.gmail.com]:587
+smtp_use_tls = yes
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+
+# 💬 Paso 3: Crear archivo de autenticación con tu cuenta Gmail
+
+sudo nano /etc/postfix/sasl_passwd
+
+# Agrega esta línea (reemplaza con tu correo Gmail y la clave de aplicación generada):
+
+[smtp.gmail.com]:587   josuelcraftyts@gmail.com:clave_de_aplicacion
+
+# 🔐 Paso 4: Proteger y registrar el archivo
+
+sudo postmap /etc/postfix/sasl_passwd
+sudo chown root:root /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+sudo chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+
+# 🔄 Paso 5: Reiniciar Postfix
+sudo systemctl restart postfix
+
+# ✉️ Paso 6: Enviar el correo al maestro
+
+echo "Josuel Andrés Cordero Guzmán - 2024-0864" | mail -s "MambruSeFueALaGuerra" os3conadrian@gmail.com
+
+# ✅ Si recibes un mensaje de error, revisa el log:
+sudo tail -f /var/log/mail.log
+
+
+
+
+
+
+# ✅ PRÁCTICA 3 – Servidor de Impresión con CUPS (1 punto)
+
+# 🔧 Paso 1: Instalar el servidor de impresión CUPS
+
+sudo apt update
+sudo apt install cups -y
+
+# 🔧 Paso 2: Agregar tu usuario al grupo 'lpadmin' para administrar impresoras
+
+sudo usermod -aG lpadmin $USER
+
+# 🔄 Paso 3: Habilitar e iniciar el servicio de CUPS
+
+sudo systemctl enable cups
+sudo systemctl start cups
+
+# 🌐 Paso 4: Acceder a la interfaz web de CUPS desde el navegador
+
+http://localhost:631
+
+# Si no abre, habilita el acceso web en CUPS:
+
+sudo cupsctl --remote-admin --remote-any --share-printers
+sudo systemctl restart cups
+
+# 🖨️ Paso 5: Instalar impresora virtual (PDF)
+# Desde el navegador CUPS (http://localhost:631):
+#  - Ve a "Administration" > "Add Printer"
+#  - Selecciona "Virtual PDF Printer" o "CUPS-PDF (Virtual Printer)"
+#  - Asigna nombre: PDFPrinter
+#  - Marca "Share This Printer"
+
+# Si no aparece, instala el paquete:
+sudo apt install printer-driver-cups-pdf -y
+
+# 🖥️ Paso 6: En la PC cliente (otra máquina Ubuntu), agregar la impresora por IP
+# Abre "Impresoras" o ejecuta:
+system-config-printer
+
+# Agrega impresora de red usando la IP del servidor:
+ipp://<IP_DEL_SERVIDOR>:631/printers/PDFPrinter
+
+# 🧪 Paso 7: Prueba de impresión
+# Abre LibreOffice o Word (en máquina cliente)
+# Escribe un texto de prueba y elige imprimir en "PDFPrinter"
+# El archivo PDF aparecerá en el servidor en: /var/spool/cups-pdf/<usuario>/
+
+# Verifica con:
+ls /var/spool/cups-pdf/$(whoami)
