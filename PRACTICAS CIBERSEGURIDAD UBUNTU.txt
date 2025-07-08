@@ -1,0 +1,88 @@
+---------------------------------------
+Práctica 1: Sincronización con Rsync
+---------------------------------------
+
+# Instalar rsync
+sudo apt update
+sudo apt install rsync -y
+
+# Crear directorio y archivo de prueba
+mkdir /home/nano/Practica1
+echo "este es un archivo secreto" > /home/nano/Practica1/secreto.txt
+
+# Comprobar contenido
+cat /home/nano/Practica1/secreto.txt
+
+# Sincronizar (ejemplo local o con otra máquina)
+# Si es a otro servidor:
+rsync -avz /home/nano/Practica1/secreto.txt usuario@192.168.x.x:/ruta/destino
+
+# Si es local (por ejemplo, otra carpeta)
+rsync -av /home/nano/Practica1/ /home/nano/backup_practica1/
+
+---------------------------------------
+Práctica 2: Alta disponibilidad con Pacemaker y Corosync
+---------------------------------------
+
+# Instalar paquetes necesarios
+sudo apt update
+sudo apt install pacemaker corosync pcs -y
+
+# Habilitar y arrancar servicios
+sudo systemctl enable corosync
+sudo systemctl enable pacemaker
+sudo systemctl start corosync
+sudo systemctl start pacemaker
+
+# Verificar estado
+sudo pcs status
+
+# Configurar cluster (en ambos nodos)
+sudo pcs cluster auth nodo1 nodo2 -u hacluster -p contraseña
+sudo pcs cluster setup --name nombre_cluster nodo1 nodo2
+sudo pcs cluster start --all
+sudo pcs cluster enable --all
+
+# Comprobar
+sudo pcs status cluster
+sudo pcs status nodes
+sudo pcs status resources
+
+---------------------------------------
+Práctica 3: Alta disponibilidad con Keepalived
+---------------------------------------
+
+# Instalar Keepalived
+sudo apt update
+sudo apt install keepalived -y
+
+# Editar configuración principal
+sudo nano /etc/keepalived/keepalived.conf
+
+# Ejemplo de configuración básica (VRRP)
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens33
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass claveSegura
+    }
+    virtual_ipaddress {
+        192.168.115.150
+    }
+}
+
+# Guardar cambios y reiniciar
+sudo systemctl restart keepalived
+sudo systemctl enable keepalived
+
+# Verificar estado
+ip a
+sudo systemctl status keepalived
+
+---------------------------------------
+FIN
+---------------------------------------
