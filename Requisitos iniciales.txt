@@ -1,0 +1,185 @@
+Requisitos iniciales:
+- Crear un snapshot de la VM antes de comenzar.
+- Usar 2 máquinas virtuales Linux (servidor y cliente) y 1 VM Windows 10 (o mini Windows 10).
+- Conexión en modo Bridge o Host-Only.
+- Link mini Windows 10: https://www.mediafire.com/file/a3ezklqb1og2omx/MiniOS10%20Pro%20v2023.06.1%20x64%20-%20www.dprojects.org.rar/file
+- Contraseña de descompresión: www.dprojects.org
+
+--------------------------------------------------
+Práctica 1: Compartir archivos entre Linux usando NFS (1 punto)
+
+En el servidor Linux:
+1. Instalar NFS (servicio para compartir archivos en red con clientes Linux):
+   sudo apt update
+   sudo apt install nfs-kernel-server -y
+
+2. Crear carpeta donde estarán los archivos a compartir y entrar en ella:
+   sudo mkdir -p /srv/OS3
+   cd /srv/OS3
+
+3. Crear 100 archivos llamados Adrian1.txt hasta Adrian100.txt:
+   for i in {{1..100}}; do sudo touch "Adrian${{i}}.txt"; done
+
+4. Cambiar el propietario y grupo a nobody:nogroup (permite acceso anónimo):
+   sudo chown -R nobody:nogroup /srv/OS3
+
+5. Asignar permisos de lectura y ejecución (acceso básico a otros usuarios):
+   sudo chmod 755 /srv/OS3
+
+6. Editar archivo de configuración de exportaciones NFS para definir qué carpeta compartir:
+   sudo nano /etc/exports
+   (Agregar línea)
+   /srv/OS3 *(rw,sync,no_subtree_check)
+
+7. Aplicar la configuración y reiniciar el servicio NFS para activar el recurso compartido:
+
+ sudo exportfs -a
+ sudo systemctl restart nfs-kernel-server
+
+En el cliente Linux:
+1. Instalar el cliente NFS (para poder conectarse al servidor):
+   sudo apt update
+   sudo apt install nfs-common -y
+
+2. Crear carpeta donde se montará el recurso compartido:
+   sudo mkdir -p /mnt/OS3
+
+3. Montar manualmente el recurso compartido para probar:
+sudo mount 192.168.100.:/srv/OS3 /mnt/OS3
+
+4. Verificar que los archivos están disponibles:
+   ls /mnt/OS3
+
+5. Editar archivo /etc/fstab para que se monte automáticamente al arrancar:
+   sudo nano /etc/fstab
+   (Agregar línea)
+  192.168.100.11:/srv/OS3   /mnt/OS3   nfs   defaults   0   0
+
+6. Reiniciar y comprobar que el montaje se haga solo:
+   sudo reboot
+   ls /mnt/OS3
+
+--------------------------------------------------
+Práctica 2: Crear file server compatible con Windows usando Samba (1 punto)
+
+En Linux servidor:
+1. Instalar Samba (protocolo para compartir archivos con Windows):
+   sudo apt update
+   sudo apt install samba -y
+
+2. Crear carpeta donde se compartirán los archivos y entrar en ella:
+   sudo mkdir -p /srv/samba/compartida
+   cd /srv/samba/compartida
+
+3. Crear 100 archivos adrian1, adrian2, ..., adrian100:
+   for i in {{1..100}}; do sudo touch "adrian${{i}}"; done
+
+4. (Opcional) Crear grupo y usuario para gestión de acceso:
+   sudo groupadd sambagrupo
+   sudo useradd -M -d /srv/samba/compartida -s /usr/sbin/nologin usuario1
+   sudo smbpasswd -a usuario1   # Asignar contraseña para Samba
+
+5. Dar permisos a la carpeta para acceso total:
+   sudo chown -R nobody:sambagrupo /srv/samba/compartida
+   sudo chmod -R 777 /srv/samba/compartida
+
+6. Editar configuración de Samba para definir la carpeta compartida:
+   sudo nano /etc/samba/smb.conf
+   (Agregar al final)
+   [compartida]
+      path = /srv/samba/compartida
+      browseable = yes
+      writable = yes
+      guest ok = yes
+      create mask = 0777
+      directory mask = 0777
+
+7. Reiniciar el servicio Samba para aplicar cambios:
+   sudo systemctl restart smbd
+
+En Windows 10 (o mini Windows):
+1. Abrir Explorador de archivos → Este equipo → Conectar unidad de red.
+2. Escribir: \\\\192.168.100.11\\compartida
+3. Verificar que aparecen los archivos y abrir adrian99.
+4. Escribir "el zumzum de la carabela", guardar y cerrar.
+5. Validar desde Linux que el archivo fue modificado correctamente:
+   cat /srv/samba/compartida/adrian99
+
+--------------------------------------------------
+Práctica 3: Crear controlador de dominio con cliente Windows (2 puntos)
+
+En Linux servidor:
+1. Crear usuario local llamado lanegracubana, con la contraseña tu matrícula:
+   sudo useradd lanegracubana
+   sudo passwd lanegracubana
+
+2. Instalar Samba 4 y dependencias necesarias para dominio:
+   sudo apt update
+   sudo apt install samba smbclient krb5-config winbind -y
+
+3. Configurar dominio Samba (provisionar):
+
+   sudo samba-tool domain provision --use-rfc2307 --interactive
+
+   - Realm: SO3.inet
+   - Domain: SO3
+   - DNS backend: SAMBA_INTERNAL
+
+4. Editar configuración Kerberos para autenticación con el dominio:
+   sudo nano /etc/krb5.conf
+   (Contenido)
+   [libdefaults]
+       default_realm = SO3.INET
+       dns_lookup_realm = false
+       dns_lookup_kdc = true
+
+5. Detener y reemplazar servicios por el controlador de dominio Samba AD:
+   sudo systemctl stop smbd nmbd winbind
+   sudo systemctl unmask samba-ad-dc
+   sudo systemctl enable samba-ad-dc
+   sudo systemctl start samba-ad-dc
+
+6. Crear usuario lanegracubana en Samba con tu matrícula como contraseña:
+   sudo samba-tool user create lanegracubana 20240864
+
+✅ PASOS PARA UNIR WINDOWS AL DOMINIO "SO3.inet"
+
+1. Abrir Configuración del sistema
+Haz clic derecho en Este equipo (o "This PC") en el escritorio o en el Explorador.
+
+Selecciona Propiedades.
+
+Luego haz clic en Cambiar configuración junto a "Nombre del equipo".
+
+2. Cambiar nombre del equipo y unir al dominio
+En la ventana de "Propiedades del sistema", haz clic en Cambiar.
+
+En la sección "Miembro de", selecciona Dominio.
+
+Escribe: SO3.inet
+(Debe coincidir con el realm de tu Samba)
+
+3. Ingresar credenciales
+Aparecerá una ventana pidiendo usuario y contraseña.
+
+Escribe: 
+
+Usuario: lanegracubana
+
+Contraseña: 20240864Aa! (o la que usaste al crear el usuario)
+
+4. Unión exitosa
+Si todo está correcto, verás un mensaje como:
+"Bienvenido al dominio SO3"
+
+Luego te pedirá reiniciar el equipo.
+
+5. Iniciar sesión en el dominio
+En la pantalla de inicio de sesión de Windows:
+
+Haz clic en "Otro usuario".
+
+Usuario: SO3\lanegracubana
+
+Contraseña: 20240864Aa!
+
